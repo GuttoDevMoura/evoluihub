@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Uso:
+#   ./startall               # sobe api, web-admin, web-member, web-marketing e worker
+#   STARTALL_KILL=1 ./startall  # se alguma porta estiver ocupada, mata o processo anterior e sobe
+#
+# Portas padrão:
+#   api: 4000
+#   web-admin: 3000
+#   web-member: 3001
+#   web-marketing: 3002
+#   worker: sem porta
+
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT_DIR"
+
+echo "== EvoluiHub startall =="
+echo "Raiz: $ROOT_DIR"
+
+# Carrega variáveis da API (DATABASE_URL etc.)
+if [ -f "$ROOT_DIR/apps/api/.env" ]; then
+  export $(grep -v '^#' "$ROOT_DIR/apps/api/.env" | xargs)
+fi
+
+declare -a pids
+
+# Se solicitado, derruba processos antigos relacionados
+if [ "${STARTALL_KILL:-0}" = "1" ]; then
+  echo "[info] STARTALL_KILL=1 -> matando processos antigos..."
+  pkill -f "apps/api|apps/web-admin|apps/web-member|apps/web-marketing|apps/worker" 2>/dev/null || true
+fi
+
+cleanup() {
+  echo "Encerrando serviços..."
+  for pid in "${pids[@]:-}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+    fi
+  done
+}
+trap cleanup INT TERM EXIT
+
+ensure_port() {
+  local port="$1"
+  if command -v lsof >/dev/null 2>&1; then
+    if lsof -i :"$port" >/dev/null 2>&1; then
+      if [ "${STARTALL_KILL:-0}" = "1" ]; then
+        echo "[warn] Porta $port ocupada. Matando processo existente..."
+        lsof -ti :"$port" | xargs -r kill
+      else
+        echo "[erro] Porta $port ocupada. Rode STARTALL_KILL=1 ./startall ou libere a porta."
+        return 1
+      fi
+    fi
+  fi
+  return 0
+}
+
+start_service() {
+  local name="$1"
+  local port="${2:-}"
+  shift 2
+  if [ -n "$port" ]; then
+    ensure_port "$port" || return 1
+  fi
+  echo "[start] $name"
+  "$@" &
+  local pid=$!
+  pids+=("$pid")
+  echo " - $name (pid: $pid)"
+}
+
+# Backend API (porta 4000)
+start_service "api" "4000" pnpm -C apps/api dev
+# Web admin (porta 3000) — package já define hostname/port
+start_service "web-admin" "3000" pnpm -C apps/web-admin dev
+# Web member (porta 3001) — package já define hostname/port
+start_service "web-member" "3001" pnpm -C apps/web-member dev
+# Marketing landing (porta 3002) — precisa de host/porta explícitos
+start_service "web-marketing" "3002" env HOSTNAME=0.0.0.0 PORT=3002 pnpm -C apps/web-marketing dev
+# Worker (sem porta, mas requer banco existente)
+start_service "worker" "" pnpm -C apps/worker dev
+
+echo "Todos os serviços foram iniciados. Logs seguem abaixo (Ctrl+C para parar):"
+wait

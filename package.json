@@ -1,0 +1,21 @@
+{
+  "name": "evoluihub",
+  "private": true,
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean",
+    "db:migrate": "pnpm --filter db migrate",
+    "db:seed": "pnpm --filter db seed",
+    "worker:dev": "pnpm -C apps/worker dev",
+    "worker:build": "pnpm -C apps/worker build",
+    "health": "curl -f http://localhost:4000/health && curl -f http://localhost:4000/api/v1/health"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.3"
+  }
+}

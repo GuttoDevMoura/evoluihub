@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build outputs
+dist/
+build/
+.next/
+out/
+.turbo/
+coverage/
+
+# logs
+*.log
+
+# env (secrets)
+.env
+.env.*.local
+.env.local
+
+# editor / OS
+.vscode/
+.DS_Store
+
+# monorepo
+**/node_modules/

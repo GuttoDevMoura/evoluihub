@@ -1,0 +1,23 @@
+{
+  "name": "worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "pg": "^8.12.0",
+    "undici": "^6.13.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.6",
+    "@types/node": "^20.12.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.4.0"
+  },
+  "packageManager": "pnpm@9.12.3"
+}
